@@ -16,8 +16,6 @@
 import logging
 import urllib2
 
-import requests
-
 from flask import *
 
 app = Flask(__name__)
@@ -55,7 +53,6 @@ def sms_receiver():
                               headers={"Content-Type": "application/json", "Accept": "application/json"})
         response = urllib2.urlopen(req)
         ideamart_respones = response.read()
-        # ideamart_respones = response.content
         logging.error("Result content: " + ideamart_respones)
 
         if response.getcode() == 200:
