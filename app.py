@@ -12,13 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import logging
+import urllib2
 
 import requests
 
 from flask import *
 
 app = Flask(__name__)
+app.debug = True
 
 
 @app.route('/')
@@ -28,6 +31,10 @@ def hello_world():
 
 @app.route('/smsReceiver', methods=["GET", "POST"])
 def sms_receiver():
+    """
+    This method is to retrieve request came from ideamart simulator of dialog and send sms message
+    :return:
+    """
     if request.method == "GET":
         response = make_response("Telco App is running")
         response.headers['Content-Type'] = 'application/json'
@@ -37,23 +44,33 @@ def sms_receiver():
         ideamart_message = json.loads(request.data)
         name = ideamart_message["message"].split(" ")[1]
         res = {'message': "Hi, " + name,
-               "destinationAddress": ideamart_message["sourceAddress"],
-               "password": ideamart_message["password"],
+               "destinationAddresses": ideamart_message["sourceAddress"],
+               "password": "password",  # This should be replaced with your ideamart app password
                "applicationId": ideamart_message["applicationId"]
                }
 
         # URL should be  changed to https://api.dialog.lk/sms/send when you host the application
         url = "http://localhost:7000/sms/send"
-        response = requests.post(url=url, data=json.dumps(res),
-                                 headers={"Content-Type": "application/json", "Accept": "application/json"})
-        ideamart_respones = response.content
-        logging.error("Result content: "+ ideamart_respones)
+        req = urllib2.Request(url, data=json.dumps(res),
+                              headers={"Content-Type": "application/json", "Accept": "application/json"})
+        response = urllib2.urlopen(req)
+        ideamart_respones = response.read()
+        # ideamart_respones = response.content
+        logging.error("Result content: " + ideamart_respones)
 
-        if response.status_code == 200:
+        if response.getcode() == 200:
             logging.info('*** Message delivered Successfully! ****')
+            response = make_response("Message delivered Successfully!")
+            response.headers['Content-Type'] = 'application/json'
+            response.headers['Accept'] = 'application/json'
+            return response
         else:
             logging.error(
-                '*** Message was not delivered Successfully!! ERROR-CODE: ' + str(response.status_code) + ' ****')
+                '*** Message was not delivered Successfully!! ERROR-CODE: ' + str(response.getcode()) + ' ****')
+            response = make_response("Message was not delivered Successfully!")
+            response.headers['Content-Type'] = 'application/json'
+            response.headers['Accept'] = 'application/json'
+            return response
 
 
 if __name__ == '__main__':
